@@ -33,10 +33,11 @@ jobs:
 
       - name: Bundle files
         run: |
-          mkdir -p ./temp/pulsar-hud/ui
+          mkdir -p ./temp/pulsar-hud
           cp ./{README.md,fxmanifest.lua,config.lua} ./temp/pulsar-hud
           cp -r ./{client,server,stream} ./temp/pulsar-hud
-          cp -r ./ui/dist ./temp/pulsar-hud/ui/dist
+          cp -r ./ui ./temp/pulsar-hud/ui
+          rm -rf ./temp/pulsar-hud/ui/node_modules
           cd ./temp && zip -r ../pulsar-hud.zip ./pulsar-hud
 
       - name: Create release
