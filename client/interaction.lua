@@ -15,7 +15,7 @@ end)
 exports("InteractionShow", function()
 	if not exports['pulsar-hud']:IsDisabledAllowDead() then
 		exports['pulsar-phone']:Close()
-		exports.ox_inventory:CloseAll()
+		exports.ox_inventory:closeInventory()
 
 		SetNuiFocus(true, true)
 		SetCursorLocation(0.5, 0.5)
