@@ -2,6 +2,33 @@ local menus = {}
 local currentItems = {}
 local stack = {}
 
+local function InteractionItemsAsMenu(items)
+	local is = {}
+	for k, v in pairs(items) do
+		local show = true
+		if v.shouldShow then
+			show = v.shouldShow()
+		end
+
+		if v.labelFunc then
+			v.label = v.labelFunc()
+		end
+
+		if show then
+			table.insert(is, {
+				id = k,
+				label = v.label,
+				icon = v.icon,
+				action = v.action,
+				data = show,
+			})
+		end
+	end
+	return is
+end
+
+exports("InteractionItemsAsMenu", InteractionItemsAsMenu)
+
 exports("InteractionHide", function()
 	SetNuiFocus(false, false)
 	SendNUIMessage({
@@ -19,7 +46,7 @@ exports("InteractionShow", function()
 
 		SetNuiFocus(true, true)
 		SetCursorLocation(0.5, 0.5)
-		local is = exports['pulsar-hud']:InteractionItemsAsMenu(menus)
+		local is = InteractionItemsAsMenu(menus)
 		stack = { is }
 		SendNUIMessage({
 			type = "SET_INTERACTION_LAYER",
@@ -56,7 +83,7 @@ exports("InteractionRegisterMenu", function(id, label, icon, action, shouldShow,
 end)
 
 exports("InteractionShowMenu", function(items)
-	local is = exports['pulsar-hud']:InteractionItemsAsMenu(items)
+	local is = InteractionItemsAsMenu(items)
 	stack[#stack + 1] = is
 	SendNUIMessage({
 		type = "SET_INTERACTION_LAYER",
@@ -86,31 +113,6 @@ exports("InteractionBack", function()
 			items = stack[#stack],
 		},
 	})
-end)
-
-exports("InteractionItemsAsMenu", function(items)
-	local is = {}
-	for k, v in pairs(items) do
-		local show = true
-		if v.shouldShow then
-			show = v.shouldShow()
-		end
-
-		if v.labelFunc then
-			v.label = v.labelFunc()
-		end
-
-		if show then
-			table.insert(is, {
-				id = k,
-				label = v.label,
-				icon = v.icon,
-				action = v.action,
-				data = show,
-			})
-		end
-	end
-	return is
 end)
 
 RegisterNUICallback("Interaction:Trigger", function(data, cb)
