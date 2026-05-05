@@ -12,9 +12,6 @@ jobs:
   create-release:
     runs-on: ubuntu-latest
     steps:
-      - name: Install zip
-        run: sudo apt install zip
-
       - name: Get latest code
         uses: actions/checkout@v4
 
@@ -33,12 +30,9 @@ jobs:
 
       - name: Bundle files
         run: |
-          mkdir -p ./temp/pulsar-hud
-          cp ./{README.md,fxmanifest.lua,config.lua} ./temp/pulsar-hud
-          cp -r ./{client,server,stream} ./temp/pulsar-hud
-          cp -r ./ui ./temp/pulsar-hud/ui
-          rm -rf ./temp/pulsar-hud/ui/node_modules
-          cd ./temp && zip -r ../pulsar-hud.zip ./pulsar-hud
+          mkdir -p staging/pulsar-hud
+          rsync -a --exclude='.github' --exclude='node_modules' --exclude='staging' . staging/pulsar-hud/
+          cd staging && zip -r ../pulsar-hud.zip pulsar-hud/
 
       - name: Create release
         uses: softprops/action-gh-release@v2
