@@ -739,35 +739,124 @@ function StartVehicleThreads()
 		end)
 	end
 
+	CreateThread(function()
+		local lastLocked = nil
+		while _vehToggled do
+			if GLOBAL_VEH and DoesEntityExist(GLOBAL_VEH) then
+				local locked = Entity(GLOBAL_VEH).state.Locked
+				if locked ~= lastLocked then
+					lastLocked = locked
+					SendNUIMessage({
+						type = "UPDATE_DOORLOCK",
+						data = { state = locked },
+					})
+				end
+			end
+			Wait(500)
+		end
+	end)
+
+	-- headlights
+	CreateThread(function()
+		local lastOn = nil
+		while _vehToggled do
+			if GLOBAL_VEH and DoesEntityExist(GLOBAL_VEH) then
+				local _, lightsOn = GetVehicleLightsState(GLOBAL_VEH)
+				if lightsOn ~= lastOn then
+					lastOn = lightsOn
+					SendNUIMessage({ type = "UPDATE_HEADLIGHTS", data = { state = lightsOn == true } })
+				end
+			end
+			Wait(200)
+		end
+	end)
+
+	-- turn signals
+	CreateThread(function()
+		local lastLeft, lastRight = nil, nil
+		while _vehToggled do
+			if GLOBAL_VEH and DoesEntityExist(GLOBAL_VEH) then
+				local leftOn, rightOn = GetVehicleIndicatorLights(GLOBAL_VEH)
+				if leftOn ~= lastLeft then
+					lastLeft = leftOn
+					SendNUIMessage({ type = "UPDATE_LEFT_SIGNAL", data = { state = leftOn } })
+				end
+				if rightOn ~= lastRight then
+					lastRight = rightOn
+					SendNUIMessage({ type = "UPDATE_RIGHT_SIGNAL", data = { state = rightOn } })
+				end
+			end
+			Wait(80)
+		end
+	end)
+
+	-- battery (entity state set by vehicle resource)
+	CreateThread(function()
+		local lastBattery = nil
+		while _vehToggled do
+			if GLOBAL_VEH and DoesEntityExist(GLOBAL_VEH) then
+				local battery = Entity(GLOBAL_VEH).state.Battery
+				if battery ~= lastBattery then
+					lastBattery = battery
+					SendNUIMessage({
+						type = "UPDATE_BATTERY",
+						data = { state = battery == true },
+					})
+				end
+			end
+			Wait(1000)
+		end
+	end)
+
+	-- mileage
+	CreateThread(function()
+		local lastMileage = nil
+		while _vehToggled do
+			if GLOBAL_VEH and DoesEntityExist(GLOBAL_VEH) then
+				local m = Entity(GLOBAL_VEH).state.Mileage
+				if m ~= lastMileage then
+					lastMileage = m
+					SendNUIMessage({ type = "UPDATE_MILEAGE", data = { mileage = m or 0 } })
+				end
+			end
+			Wait(2000)
+		end
+	end)
+
 	if class ~= 13 then
 		CreateThread(function()
 			while _vehToggled do
-				local checkEngine = false
+				-- 0 = ok, 1 = warning (orange), 2 = critical (red flash)
+				local engineState = 0
 
 				if GLOBAL_VEH then
 					local ent = Entity(GLOBAL_VEH)
 
 					if class ~= 14 and class ~= 15 and class ~= 16 then
 						local damageStuff = ent.state.DamagedParts or {}
-
 						for k, v in pairs(damageStuff) do
 							if type(v) == "number" and v < 25.0 then
-								checkEngine = true
+								engineState = 2
+							elseif type(v) == "number" and v < 60.0 and engineState < 2 then
+								engineState = 1
 							end
 						end
 					end
 
-					if GetVehicleEngineHealth(GLOBAL_VEH) <= 400.0 then
-						checkEngine = true
+					local engineHealth = GetVehicleEngineHealth(GLOBAL_VEH)
+					if engineHealth <= 400.0 then
+						engineState = 2
+					elseif engineHealth <= 700.0 and engineState < 2 then
+						engineState = 1
 					end
 				end
 
 				SendNUIMessage({
 					type = "UPDATE_ENGINELIGHT",
-					data = { checkEngine = checkEngine },
+					data = { checkEngine = engineState },
 				})
 
-				Wait(10000)
+				Wait(2000)
 			end
 		end)
 	else
@@ -808,3 +897,5 @@ AddEventHandler("Keybinds:Client:KeyUp:cancel_action", function()
 		exports['pulsar-hud']:OverlayHide()
 	end
 end)
+
+

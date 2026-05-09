@@ -29,6 +29,19 @@ end
 
 exports("InteractionItemsAsMenu", InteractionItemsAsMenu)
 
+AddEventHandler('onClientResourceStart', function(resource)
+	if resource == GetCurrentResourceName() then
+		Wait(1200)
+		local numRes = GetNumResources()
+		for i = 0, numRes - 1 do
+			local res = GetResourceByFindIndex(i)
+			if res and res ~= GetCurrentResourceName() and GetResourceState(res) == 'started' then
+				TriggerEvent('onClientResourceStart', res)
+			end
+		end
+	end
+end)
+
 exports("InteractionHide", function()
 	SetNuiFocus(false, false)
 	SendNUIMessage({
@@ -110,7 +123,7 @@ exports("InteractionBack", function()
 	SendNUIMessage({
 		type = "SET_INTERACTION_MENU_ITEMS",
 		data = {
-			items = stack[#stack],
+			items = stack[#stack] or {},
 		},
 	})
 end)

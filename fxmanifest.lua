@@ -24,7 +24,9 @@ files({
   "ui/dist/*.png",
   "ui/dist/*.webp",
   "ui/dist/*.js",
+  "ui/dist/*.css",
   "ui/dist/*.mp3",
   "ui/dist/*.ttf",
+  "ui/dist/*.woff2",
   "stream/int3232302352.gfx",
 })
