@@ -31,9 +31,15 @@ export const actionHandlers: Record<string, (payload: Record<string, unknown>) =
     buttons: p.buttons as unknown[],
   }),
   HIDE_ACTION: () => useActionStore.setState({ showing: false }),
-  ADD_ACTION: (p) => useAction2Store.setState((s) => ({
-    actions: [...s.actions, p as unknown as ActionItem],
-  })),
+  ADD_ACTION: (p) => useAction2Store.setState((s) => {
+    const item = p as unknown as ActionItem
+    const exists = s.actions.some((a) => a.id === item.id)
+    return {
+      actions: exists
+        ? s.actions.map((a) => (a.id === item.id ? item : a))
+        : [...s.actions, item],
+    }
+  }),
   REMOVE_ACTION: (p) => useAction2Store.setState((s) => ({
     actions: s.actions.filter((a) => a.id !== (p.id as string)),
   })),
