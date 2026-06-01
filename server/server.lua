@@ -62,7 +62,7 @@ AddEventHandler('onResourceStart', function(resource)
           exports["pulsar-core"]:ClientCallback(source, "HUD:PutOnBlindfold", "Removing Blindfold",
             function(isSuccess)
               if isSuccess then
-                if exports.ox_inventory:AddItem(char:GetData("SID"), "blindfold", 1, {}, 1) then
+                if exports.ox_inventory:AddItem(source, "blindfold", 1, {}, 1) then
                   tarState.isBlindfolded = false
                   TriggerClientEvent("VOIP:Client:Gag:Use", data)
                 else
