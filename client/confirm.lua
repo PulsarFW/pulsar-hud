@@ -1,5 +1,11 @@
+local config = load(LoadResourceFile(GetCurrentResourceName(), "config/shared.lua"))()
+
+AddEventHandler("Proxy:Shared:RegisterReady", function()
+	exports["pulsar_core"]:RegisterComponent("Confirm", CONFIRM)
+end)
+
 -- RegisterNetEvent("Confirm:Client:Test", function()
--- 	exports['pulsar-hud']:ConfirmShow(
+-- 	Confirm:Show(
 -- 		"Test Input",
 -- 		{
 -- 			yes = "Confirm:Test:Yes",
@@ -21,42 +27,43 @@
 -- end)
 
 RegisterNUICallback("Confirm:Yes", function(data, cb)
-	exports['pulsar-sounds']:UISoundsPlayFrontEnd(-1, "SELECT", "HUD_FRONTEND_DEFAULT_SOUNDSET")
+	plsr.UISounds.Play:FrontEnd(-1, "SELECT", config.SoundSet)
 	if data.event then
 		TriggerEvent(data.event, data.data)
 	end
-	exports['pulsar-hud']:ConfirmClose()
+	plsr.Confirm:Close()
 	cb("ok")
 end)
 
 RegisterNUICallback("Confirm:No", function(data, cb)
-	exports['pulsar-sounds']:UISoundsPlayFrontEnd(-1, "BACK", "HUD_FRONTEND_DEFAULT_SOUNDSET")
+	plsr.UISounds.Play:FrontEnd(-1, "BACK", config.SoundSet)
 	if data and data.event then
 		TriggerEvent(data.event, data.data)
 	end
-	exports['pulsar-hud']:ConfirmClose()
+	plsr.Confirm:Close()
 	cb("ok")
 end)
 
-exports("ConfirmShow", function(title, events, description, data, denyLabel, acceptLabel)
-	SetNuiFocus(true, true)
-	SendNUIMessage({
-		type = "SHOW_CONFIRM",
-		data = {
-			title = title,
-			yes = events.yes,
-			no = events.no,
-			description = description,
-			data = data,
-			denyLabel = denyLabel,
-			acceptLabel = acceptLabel,
-		},
-	})
-end)
-
-exports("ConfirmClose", function()
-	SetNuiFocus(false, false)
-	SendNUIMessage({
-		type = "CLOSE_CONFIRM",
-	})
-end)
+CONFIRM = {
+	Show = function(self, title, events, description, data, denyLabel, acceptLabel)
+		SetNuiFocus(true, true)
+		SendNUIMessage({
+			type = "SHOW_CONFIRM",
+			data = {
+				title = title,
+				yes = events.yes,
+				no = events.no,
+				description = description,
+				data = data,
+				denyLabel = denyLabel,
+				acceptLabel = acceptLabel,
+			},
+		})
+	end,
+	Close = function(self)
+		SetNuiFocus(false, false)
+		SendNUIMessage({
+			type = "CLOSE_CONFIRM",
+		})
+	end,
+}

@@ -1,11 +1,11 @@
 AddEventHandler("Vehicles:Client:EnterVehicle", function(currentVehicle, currentSeat)
 	GLOBAL_VEH = currentVehicle
-	exports['pulsar-hud']:VehicleShow()
+	plsr.Hud.Vehicle:Show()
 	--Hud.Minimap:Set()
 end)
 
 AddEventHandler("Vehicles:Client:ExitVehicle", function(currentVehicle, currentSeat)
-	exports['pulsar-hud']:VehicleHide()
+	plsr.Hud.Vehicle:Hide()
 	GLOBAL_VEH = nil
 end)
 
@@ -13,18 +13,18 @@ AddEventHandler("Characters:Client:Spawn", function()
 	SendNUIMessage({
 		type = "SET_CONFIG",
 		data = {
-			config = LocalPlayer.state.Character:GetData("HUDConfig"),
+			config = plsr.State.character.HUDConfig,
 		},
 	})
 
-	exports['pulsar-hud']:Show()
+	plsr.Hud:Show()
 
-	DisplayRadar(hasValue(LocalPlayer.state.Character:GetData("States"), "GPS"))
-	exports['pulsar-hud']:ShiftLocation(hasValue(LocalPlayer.state.Character:GetData("States"), "GPS"))
+	DisplayRadar(hasValue(plsr.State.character.States, "GPS"))
+	plsr.Hud:ShiftLocation(hasValue(plsr.State.character.States, "GPS"))
 end)
 
 RegisterNetEvent("UI:Client:Reset", function(manual)
-	exports['pulsar-hud']:Hide()
+	plsr.Hud:Hide()
 	SendNUIMessage({
 		type = "UI_RESET",
 		data = {
@@ -32,30 +32,30 @@ RegisterNetEvent("UI:Client:Reset", function(manual)
 		},
 	})
 
-	if LocalPlayer.state.Character ~= nil then
+	if plsr.State.flags.loggedIn then
 		SendNUIMessage({
 			type = "SET_CONFIG",
 			data = {
-				config = LocalPlayer.state.Character:GetData("HUDConfig"),
+				config = plsr.State.character.HUDConfig,
 			},
 		})
 	end
 
-	exports['pulsar-hud']:ActionHide()
-	exports['pulsar-hud']:ListMenuClose()
-	exports['pulsar-hud']:InteractionHide()
-	exports["pulsar-hud"]:Notification("clear")
-	exports['pulsar-hud']:ConfirmClose()
-	exports['pulsar-hud']:InputClose()
-	exports['pulsar-hud']:InfoOverlayClose()
-	exports['pulsar-hud']:MethClose()
+	plsr.Action:Hide()
+	plsr.ListMenu:Close()
+	plsr.Interaction:Hide()
+	Notification:Clear()
+	plsr.Confirm:Close()
+	plsr.Input:Close()
+	plsr.InfoOverlay:Close()
+	plsr.Hud.Meth:Close()
 
 	TriggerEvent("UI:Client:ResetFinished", manual)
 
 	if manual then
 		Wait(2500)
-		exports['pulsar-hud']:Show()
-		if exports['pulsar-phone']:IsOpen() or hasValue(LocalPlayer.state.Character:GetData("States"), "GPS") then
+		plsr.Hud:Show()
+		if plsr.Phone:IsOpen() or hasValue(plsr.State.character.States, "GPS") then
 			DisplayRadar(true)
 		end
 	end
@@ -104,31 +104,31 @@ RegisterNetEvent("Status:Client:Update", function(status, value)
 end)
 
 RegisterNetEvent("Progress:Client:Progress", function(action, cb)
-	exports['pulsar-hud']:Progress(action, cb)
+	plsr.Progress:Progress(action, cb)
 end)
 
 RegisterNetEvent("Progress:Client:ProgressWithStartEvent", function(action, start, finish)
-	exports['pulsar-hud']:ProgressWithStartEvent(action, start, finish)
+	plsr.Progress:ProgressWithStartEvent(action, start, finish)
 end)
 
 RegisterNetEvent("Progress:Client:ProgressWithTickEvent", function(action, tick, finish)
-	exports['pulsar-hud']:ProgressWithTickEvent(action, tick, finish)
+	plsr.Progress:ProgressWithTickEvent(action, tick, finish)
 end)
 
 RegisterNetEvent("Progress:Client:ProgressWithStartAndTick", function(action, start, tick, finish)
-	exports['pulsar-hud']:ProgressWithStartAndTick(action, start, tick, finish)
+	plsr.Progress:ProgressWithStartAndTick(action, start, tick, finish)
 end)
 
 RegisterNetEvent("Progress:Client:Cancel", function()
-	exports['pulsar-hud']:ProgressCancel()
+	plsr.Progress:Cancel()
 end)
 
 RegisterNetEvent("Progress:Client:Fail", function()
-	exports['pulsar-hud']:ProgressFail()
+	plsr.Progress:Fail()
 end)
 
 RegisterNUICallback("Progress:Finish", function(data, cb)
-	exports['pulsar-hud']:ProgressFinish()
+	plsr.Progress:Finish()
 	cb("ok")
 end)
 
@@ -186,7 +186,7 @@ RegisterNUICallback("CloseUI", function(data, cb)
 end)
 
 RegisterNUICallback("SaveConfig", function(data, cb)
-	exports["pulsar-core"]:ServerCallback("HUD:SaveConfig", data, function(s)
+	plsr.Callbacks:ServerCallback("HUD:SaveConfig", data, function(s)
 		cb(s)
 	end)
 end)

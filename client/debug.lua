@@ -48,19 +48,14 @@ function GetVehicle()
 			distanceFrom = distance
 			rped = ped
 			if IsEntityTouchingEntity(GetPlayerPed(-1), ped) then
-				local modelHash = GetEntityModel(ped)
-				local modelName = GetDisplayNameFromVehicleModel(modelHash)
 				DrawText3Ds(
 					pos["x"],
 					pos["y"],
 					pos["z"] + 1,
-					"Veh: " .. ped .. " Model: " .. modelHash .. " Name: " .. modelName .. " IN CONTACT"
+					"Veh: " .. ped .. " Model: " .. GetEntityModel(ped) .. " IN CONTACT"
 				)
 			else
-				local modelHash = GetEntityModel(ped)
-				local modelName = GetDisplayNameFromVehicleModel(modelHash)
-				DrawText3Ds(pos["x"], pos["y"], pos["z"] + 1,
-					"Veh: " .. ped .. " Model: " .. modelHash .. " Name: " .. modelName)
+				DrawText3Ds(pos["x"], pos["y"], pos["z"] + 1, "Veh: " .. ped .. " Model: " .. GetEntityModel(ped) .. "")
 			end
 		end
 		success, ped = FindNextVehicle(handle)
@@ -88,12 +83,12 @@ function GetObject()
 					pos["y"],
 					pos["z"] + 1,
 					"Obj: "
-					.. ped
-					.. " Model: "
-					.. GetEntityModel(ped)
-					.. " Heading: "
-					.. GetEntityHeading(ped)
-					.. " IN CONTACT"
+						.. ped
+						.. " Model: "
+						.. GetEntityModel(ped)
+						.. " Heading: "
+						.. GetEntityHeading(ped)
+						.. " IN CONTACT"
 				)
 			else
 				DrawText3Ds(
@@ -101,13 +96,13 @@ function GetObject()
 					pos["y"],
 					pos["z"] + 1,
 					"Obj: "
-					.. ped
-					.. " Model: "
-					.. GetEntityModel(ped)
-					.. " Heading: "
-					.. GetEntityHeading(ped)
-					.. "\n\n"
-					.. string.format("Entity Coords: %s, %s, %s", pos["x"], pos["y"], pos["z"])
+						.. ped
+						.. " Model: "
+						.. GetEntityModel(ped)
+						.. " Heading: "
+						.. GetEntityHeading(ped)
+						.. "\n\n"
+						.. string.format("Entity Coords: %s, %s, %s", pos["x"], pos["y"], pos["z"])
 				)
 			end
 		end
@@ -138,12 +133,12 @@ function getNPC()
 					pos["y"],
 					pos["z"],
 					"Ped: "
-					.. ped
-					.. " Model: "
-					.. GetEntityModel(ped)
-					.. " Relationship HASH: "
-					.. GetPedRelationshipGroupHash(ped)
-					.. " IN CONTACT"
+						.. ped
+						.. " Model: "
+						.. GetEntityModel(ped)
+						.. " Relationship HASH: "
+						.. GetPedRelationshipGroupHash(ped)
+						.. " IN CONTACT"
 				)
 			else
 				DrawText3Ds(
@@ -151,11 +146,11 @@ function getNPC()
 					pos["y"],
 					pos["z"],
 					"Ped: "
-					.. ped
-					.. " Model: "
-					.. GetEntityModel(ped)
-					.. " Relationship HASH: "
-					.. GetPedRelationshipGroupHash(ped)
+						.. ped
+						.. " Model: "
+						.. GetEntityModel(ped)
+						.. " Relationship HASH: "
+						.. GetPedRelationshipGroupHash(ped)
 				)
 			end
 		end

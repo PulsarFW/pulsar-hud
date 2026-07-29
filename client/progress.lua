@@ -1,234 +1,168 @@
-template_action          = {
-	name            = "",
-	duration        = 0,
-	label           = "",
-	useWhileDead    = false,
-	canCancel       = true,
-	ignoreModifier  = false,
-	disarm          = true,
+template_action = {
+	name = "",
+	duration = 0,
+	label = "",
+	useWhileDead = false,
+	canCancel = true,
+	ignoreModifier = false,
+	disarm = true,
 	controlDisables = {
-		disableMovement    = false,
+		disableMovement = false,
 		disableCarMovement = false,
-		disableMouse       = false,
-		disableCombat      = false,
+		disableMouse = false,
+		disableCombat = false,
 	},
+	-- animation = {
+	-- 	animDict = nil,
+	-- 	anim = nil,
+	-- 	flags = 0,
+	-- 	task = nil,
+	-- },
+	-- prop = {
+	-- 	model = nil,
+	-- 	bone = nil,
+	-- 	coords = { x = 0.0, y = 0.0, z = 0.0 },
+	-- 	rotation = { x = 0.0, y = 0.0, z = 0.0 },
+	-- },
+	-- propTwo = {
+	-- 	model = nil,
+	-- 	bone = nil,
+	-- 	coords = { x = 0.0, y = 0.0, z = 0.0 },
+	-- 	rotation = { x = 0.0, y = 0.0, z = 0.0 },
+	-- },
 }
+local progress_action = nil
 
-local progress_action    = nil
-local _mdfr              = 1.0
-local disableMouse       = false
-local wasCancelled       = false
-local wasFinished        = false
-local isAnim             = false
-local isProp             = false
-local isPropTwo          = false -- kept for backwards compat; not used with new array flow
-local prop_net           = nil   -- kept for backwards compat; not used with new array flow
-local propTwo_net        = nil   -- kept for backwards compat; not used with new array flow
+local _mdfr = 1.0
+
+local disableMouse = false
+local wasCancelled = false
+local wasFinished = false
+local isAnim = false
+local isProp = false
+local isPropTwo = false
+local prop_net = nil
+local propTwo_net = nil
 local _runProgressThread = false
-
--- MARK: New Prop Attachment
-local _prop_nets         = {}
-local function _ensureVec3(t)
-	if not t then return { x = 0.0, y = 0.0, z = 0.0 } end
-	return { x = t.x or 0.0, y = t.y or 0.0, z = t.z or 0.0 }
-end
-
-local function _toHash(model)
-	if type(model) == "number" then
-		return model
-	end
-	return GetHashKey(model)
-end
-
-local function _loadModel(hash)
-	if not IsModelInCdimage(hash) then return false end
-	RequestModel(hash)
-	local timeout = GetGameTimer() + 5000
-	while not HasModelLoaded(hash) do
-		Wait(0)
-		if GetGameTimer() > timeout then
-			return false
-		end
-	end
-	return true
-end
-
----@param player number ped
----@param spec table { model, bone?, coords?/pos?, rotation?/rot? }
-local function _attachProp(player, spec)
-	if not spec or not spec.model then return nil end
-
-	local bone      = spec.bone or 60309
-	local coords    = _ensureVec3(spec.coords or spec.pos)
-	local rot       = _ensureVec3(spec.rotation or spec.rot)
-
-	local modelHash = _toHash(spec.model)
-	if not _loadModel(modelHash) then return nil end
-
-	local p = GetEntityCoords(player)
-	local obj = CreateObject(modelHash, p.x, p.y, p.z, true, true, true)
-	if not DoesEntityExist(obj) then return nil end
-
-	local netid = ObjToNet(obj)
-	SetNetworkIdExistsOnAllMachines(netid, true)
-	NetworkSetNetworkIdDynamic(netid, true)
-	SetNetworkIdCanMigrate(netid, false)
-
-	AttachEntityToEntity(
-		obj,
-		player,
-		GetPedBoneIndex(player, bone),
-		coords.x, coords.y, coords.z,
-		rot.x, rot.y, rot.z,
-		true, true, false, true, 1, true
-	)
-
-	table.insert(_prop_nets, netid)
-	SetModelAsNoLongerNeeded(modelHash)
-	return netid
-end
-
-local function _cleanupAllProps()
-	for i = #_prop_nets, 1, -1 do
-		local netid = _prop_nets[i]
-		if netid ~= nil and NetworkDoesEntityExistWithNetworkId(netid) then
-			local obj = NetToObj(netid)
-			if DoesEntityExist(obj) then
-				DeleteEntity(obj)
-			end
-		end
-		_prop_nets[i] = nil
-	end
-end
-
-local function _asPropArray(prop)
-	if not prop then return {} end
-	if prop[1] ~= nil then
-		return prop -- already an array
-	else
-		return { prop } -- single spec
-	end
-end
-
-local function deepcopy(orig)
-	if type(orig) ~= 'table' then return orig end
-	local copy = {}
-	for k, v in pairs(orig) do
-		copy[deepcopy(k)] = deepcopy(v)
-	end
-	return copy
-end
----------------------------------------
 
 function runMdfr(duration)
 	local c = 0
 	CreateThread(function()
-		exports['pulsar-hud']:ApplyBuff("prog_mod", duration / 1000, false)
-		while LocalPlayer.state.loggedIn and c < duration / 1000 do
+		plsr.Buffs:ApplyUniqueBuff("prog_mod", duration / 1000, false)
+		while plsr.State.flags.loggedIn and c < duration / 1000 do
 			c = c + 1
 			Wait(1000)
 		end
-		exports['pulsar-hud']:RemoveBuff("prog_mod")
+		plsr.Buffs:RemoveBuffType("prog_mod")
 		_mdfr = 1.0
 	end)
 end
 
-exports("ProgressCurrentAction", function()
-	return progress_action and progress_action.name or ""
-end)
-
-exports("Progress", function(action, finish)
-	_doProgress(action, nil, nil, finish)
-end)
-
-exports("ProgressWithStartEvent", function(action, start, finish)
-	_doProgress(action, start, nil, finish)
-end)
-
-exports("ProgressWithTickEvent", function(action, tick, finish)
-	_doProgress(action, nil, tick, finish)
-end)
-
-exports("ProgressWithStartAndTick", function(action, start, tick, finish)
-	_doProgress(action, start, tick, finish)
-end)
-
-exports("ProgressModifier", function(p, t)
-	if _mdfr ~= 1.0 then
-		return false
-	end
-	_mdfr = p / 100.0
-	runMdfr(t)
-	return true
-end)
-
-exports("ProgressCancel", function(force)
-	if progress_action == nil then return end
-	if progress_action.canCancel or force then
+PROGRESS = {
+	_required = {
+		"CurrentAction",
+		"Progress",
+		"ProgressWithStartEvent",
+		"ProgressWithTickEvent",
+		"ProgressWithStartAndTick",
+		"Cancel",
+		"Fail",
+	},
+	CurrentAction = function(self)
+		return progress_action.name
+	end,
+	Progress = function(self, action, finish)
+		_doProgress(action, nil, nil, finish)
+	end,
+	ProgressWithStartEvent = function(self, action, start, finish)
+		_doProgress(action, start, nil, finish)
+	end,
+	ProgressWithTickEvent = function(self, action, tick, finish)
+		_doProgress(action, nil, tick, finish)
+	end,
+	ProgressWithStartAndTick = function(self, action, start, tick, finish)
+		_doProgress(action, start, tick, finish)
+	end,
+	Modifier = function(self, p, t)
+		if _mdfr ~= 1.0 then
+			return false
+		end
+		_mdfr = p / 100.0
+		runMdfr(t)
+		return true
+	end,
+	Cancel = function(self, force)
+		if progress_action == nil then
+			return
+		end
+		if progress_action.canCancel or force then
+			wasCancelled = true
+			_doFinish()
+			SendNUIMessage({
+				type = "CANCEL_PROGRESS",
+			})
+		end
+	end,
+	Fail = function(self)
 		wasCancelled = true
 		_doFinish()
 		SendNUIMessage({
-			type = "CANCEL_PROGRESS",
+			type = "FAIL_PROGRESS",
 		})
-	end
-end)
-
-exports("ProgressFail", function()
-	wasCancelled = true
-	_doFinish()
-	SendNUIMessage({
-		type = "FAIL_PROGRESS",
-	})
-end)
-
-exports("ProgressFinish", function()
-	wasFinished = true
-	_doFinish()
-end)
+	end,
+	Finish = function(self)
+		wasFinished = true
+		_doFinish()
+	end,
+}
 
 AddEventHandler("Keybinds:Client:KeyUp:cancel_action", function()
-	if not LocalPlayer.state.doingAction then return end
-	exports['pulsar-hud']:ProgressCancel()
+	if not plsr.State.flags.doingAction then
+		return
+	end
+	plsr.Progress:Cancel()
+end)
+
+AddEventHandler("Proxy:Shared:RegisterReady", function()
+	exports["pulsar_core"]:RegisterComponent("Progress", PROGRESS)
 end)
 
 RegisterNetEvent("Characters:Client:Logout")
 AddEventHandler("Characters:Client:Logout", function()
-	exports['pulsar-hud']:ProgressCancel()
+	plsr.Progress:Cancel()
 end)
 
 function normalizePAct(passed)
 	local c = deepcopy(template_action)
-	for k, v in pairs(passed or {}) do
+	for k, v in pairs(passed) do
 		c[k] = v
 	end
 	return c
 end
 
 function _doProgress(action, start, tick, finish)
-	local player = LocalPlayer.state.ped
-	LocalPlayer.state.invBusy = true
+	local player = PlayerPedId()
 	progress_action = normalizePAct(action)
-
-	if ((not IsEntityDead(player)) and not LocalPlayer.state.isDead) or progress_action.useWhileDead then
-		if not LocalPlayer.state.doingAction then
+	if (not IsEntityDead(player) and not plsr.State.flags.isDead) or action.useWhileDead then
+		if not plsr.State.flags.doingAction then
 			_doActionStart(player, progress_action)
 
-			LocalPlayer.state.doingAction = true
+			plsr.State.flags.doingAction = true
 			wasCancelled = false
 			isAnim = false
 			isProp = false
-			isPropTwo = false
+			wasCancelled = false
 			wasFinished = false
 
-			if not progress_action.ignoreModifier then
-				progress_action.duration = progress_action.duration * _mdfr
+			if not action.ignoreModifier then
+				action.duration = action.duration * _mdfr
 			end
 
 			SendNUIMessage({
 				type = "START_PROGRESS",
 				data = {
-					duration = progress_action.duration,
-					label = progress_action.label,
+					duration = action.duration,
+					label = action.label,
 				},
 			})
 
@@ -239,24 +173,24 @@ function _doProgress(action, start, tick, finish)
 
 				if tick ~= nil then
 					CreateThread(function()
-						while LocalPlayer.state.doingAction do
-							if progress_action.tickrate ~= nil then
-								Wait(progress_action.tickrate)
+						while plsr.State.flags.doingAction do
+							if action.tickrate ~= nil then
+								Wait(action.tickrate)
 							else
 								Wait(0)
 							end
 
-							if LocalPlayer.state.doingAction and not (wasCancelled or wasFinished) then
+							if plsr.State.flags.doingAction and not (wasCancelled or wasFinished) then
 								tick()
 							end
 						end
 					end)
 				end
 
-				while LocalPlayer.state.doingAction do
+				while plsr.State.flags.doingAction do
 					Wait(1)
-					if (IsEntityDead(player) and not progress_action.useWhileDead) or not LocalPlayer.state.loggedIn then
-						exports['pulsar-hud']:ProgressCancel()
+					if IsEntityDead(player) and not action.useWhileDead or not plsr.State.flags.loggedIn then
+						plsr.Progress:Cancel()
 					end
 				end
 
@@ -265,10 +199,10 @@ function _doProgress(action, start, tick, finish)
 				end
 			end)
 		else
-			exports["pulsar-hud"]:Notification("error", "Already Doing An Action", 5000)
+			Notification:Error("Already Doing An Action", 5000)
 		end
 	else
-		exports["pulsar-hud"]:Notification("error", "Already Doing An Action", 5000)
+		Notification:Error("Already Doing An Action", 5000)
 	end
 end
 
@@ -284,78 +218,185 @@ function _doActionStart(player, action)
 
 	CreateThread(function()
 		while _runProgressThread do
-			if LocalPlayer.state.doingAction then
+			if plsr.State.flags.doingAction then
 				if not isAnim then
 					if action.animation then
 						if action.animation.task ~= nil then
-							if GetVehiclePedIsIn(LocalPlayer.state.ped) == 0 then
+							if GetVehiclePedIsIn(PlayerPedId()) == 0 then
 								TaskStartScenarioInPlace(player, action.animation.task, 0, true)
 							end
 						elseif action.animation.animDict ~= nil and action.animation.anim ~= nil then
 							if action.animation.flags == nil then
-								local disables = action.controlDisables or {}
-								action.animation.flags = (disables.disableMovement and 1) or 49
+								action.animation.flags = 1
 							end
 
-							if DoesEntityExist(player) and not LocalPlayer.state.isDead then
+							if DoesEntityExist(player) and not plsr.State.flags.isDead then
 								loadAnimDict(action.animation.animDict)
-								TaskPlayAnim(player, action.animation.animDict, action.animation.anim, 3.0, 1.0, -1,
-									action.animation.flags, 0, 0, 0, 0)
+								TaskPlayAnim(
+									player,
+									action.animation.animDict,
+									action.animation.anim,
+									3.0,
+									1.0,
+									-1,
+									action.animation.flags,
+									0,
+									0,
+									0,
+									0
+								)
 							end
 
 							CreateThread(function()
-								while LocalPlayer.state.doingAction do
-									if LocalPlayer.state.doingAction and not IsEntityPlayingAnim(player, action.animation.animDict, action.animation.anim, 3) then
-										TaskPlayAnim(player, action.animation.animDict, action.animation.anim, 3.0, 1.0,
-											-1, action.animation.flags, 0, 0, 0, 0)
+								while plsr.State.flags.doingAction do
+									if
+										plsr.State.flags.doingAction
+										and not IsEntityPlayingAnim(
+											player,
+											action.animation.animDict,
+											action.animation.anim,
+											3
+										)
+									then
+										TaskPlayAnim(
+											player,
+											action.animation.animDict,
+											action.animation.anim,
+											3.0,
+											1.0,
+											-1,
+											action.animation.flags,
+											0,
+											0,
+											0,
+											0
+										)
 									end
 									Wait(1000)
 								end
 							end)
 						elseif action.animation.anim ~= nil then
-							exports['pulsar-animations']:EmotesPlay(action.animation.anim, false, action.duration, true)
+							plsr.Animations.Emotes:Play(action.animation.anim, false, action.duration, true)
 						else
-							if GetVehiclePedIsIn(LocalPlayer.state.ped) == 0 then
+							if GetVehiclePedIsIn(PlayerPedId()) == 0 then
 								TaskStartScenarioInPlace(player, "PROP_HUMAN_BUM_BIN", 0, true)
 							end
 						end
 					end
 
 					if action.disarm then
-						TriggerEvent('ox_inventory:disarm', LocalPlayer.state.ped, true)
+						plsr.Weapons:UnequipIfEquippedNoAnim()
 					end
 
 					isAnim = true
 				end
+				if not isProp and action.prop ~= nil and action.prop.model ~= nil then
+					RequestModel(action.prop.model)
 
-				if not isProp then
-					local hasAny = false
-					local props = {}
+					while not HasModelLoaded(GetHashKey(action.prop.model)) do
+						Wait(0)
+					end
 
-					for _, p in ipairs(_asPropArray(action.prop)) do
-						if p and (p.model ~= nil) then
-							props[#props + 1] = p
+					local pCoords = GetOffsetFromEntityInWorldCoords(player, 0.0, 0.0, 0.0)
+					local modelSpawn =
+						CreateObject(GetHashKey(action.prop.model), pCoords.x, pCoords.y, pCoords.z, true, true, true)
+
+					local netid = ObjToNet(modelSpawn)
+					SetNetworkIdExistsOnAllMachines(netid, true)
+					NetworkSetNetworkIdDynamic(netid, true)
+					SetNetworkIdCanMigrate(netid, false)
+					if action.prop.bone == nil then
+						action.prop.bone = 60309
+					end
+
+					if action.prop.coords == nil then
+						action.prop.coords = { x = 0.0, y = 0.0, z = 0.0 }
+					end
+
+					if action.prop.rotation == nil then
+						action.prop.rotation = { x = 0.0, y = 0.0, z = 0.0 }
+					end
+
+					AttachEntityToEntity(
+						modelSpawn,
+						player,
+						GetPedBoneIndex(player, action.prop.bone),
+						action.prop.coords.x,
+						action.prop.coords.y,
+						action.prop.coords.z,
+						action.prop.rotation.x,
+						action.prop.rotation.y,
+						action.prop.rotation.z,
+						1,
+						1,
+						0,
+						1,
+						0,
+						1
+					)
+					prop_net = netid
+
+					isProp = true
+
+					if not isPropTwo and action.propTwo ~= nil and action.propTwo.model ~= nil then
+						RequestModel(action.propTwo.model)
+
+						while not HasModelLoaded(GetHashKey(action.propTwo.model)) do
+							Wait(0)
 						end
-					end
 
-					if action.propTwo and action.propTwo.model ~= nil then
-						props[#props + 1] = action.propTwo
-					end
+						local pCoords = GetEntityCoords(player)
+						local modelSpawn = CreateObject(
+							GetHashKey(action.propTwo.model),
+							pCoords.x,
+							pCoords.y,
+							pCoords.z,
+							true,
+							true,
+							true
+						)
 
-					for i = 1, #props do
-						local netid = _attachProp(player, props[i])
-						if netid ~= nil then
-							hasAny = true
+						local netid = ObjToNet(modelSpawn)
+						SetNetworkIdExistsOnAllMachines(netid, true)
+						NetworkSetNetworkIdDynamic(netid, true)
+						SetNetworkIdCanMigrate(netid, false)
+						if action.propTwo.bone == nil then
+							action.propTwo.bone = 60309
 						end
-					end
 
-					if hasAny then
-						isProp = true
+						if action.propTwo.coords == nil then
+							action.propTwo.coords = { x = 0.0, y = 0.0, z = 0.0 }
+						end
+
+						if action.propTwo.rotation == nil then
+							action.propTwo.rotation = { x = 0.0, y = 0.0, z = 0.0 }
+						end
+
+						AttachEntityToEntity(
+							modelSpawn,
+							player,
+							GetPedBoneIndex(player, action.propTwo.bone),
+							action.propTwo.coords.x,
+							action.propTwo.coords.y,
+							action.propTwo.coords.z,
+							action.propTwo.rotation.x,
+							action.propTwo.rotation.y,
+							action.propTwo.rotation.z,
+							1,
+							1,
+							0,
+							1,
+							0,
+							1
+						)
+						propTwo_net = netid
+
+						isPropTwo = true
 					end
 				end
 
 				if action.vehicle and not IsPedInAnyVehicle(player) then
-					exports['pulsar-hud']:ProgressFail()
+					plsr.Progress:Fail()
 				end
 			end
 			Wait(0)
@@ -364,29 +405,33 @@ function _doActionStart(player, action)
 end
 
 function _doFinish()
-	LocalPlayer.state.invBusy = false
-	LocalPlayer.state.doingAction = false
+	plsr.State.flags.doingAction = false
 	_doCleanup(progress_action)
 end
 
 function _doCleanup(action)
-	_cleanupAllProps()
-
-	prop_net = nil
-	propTwo_net = nil
+	DeleteEntity(prop_net)
+	DeleteEntity(propTwo_net)
+	if NetworkDoesEntityExistWithNetworkId(prop_net) then
+		DeleteEntity(NetToObj(prop_net))
+	end
+	if NetworkDoesEntityExistWithNetworkId(propTwo_net) then
+		DeleteEntity(NetToObj(propTwo_net))
+	end
 
 	if action and action.animation then
 		if action.animation.animDict ~= nil and action.animation.anim ~= nil then
-			StopAnimTask(LocalPlayer.state.ped, action.animation.animDict, action.animation.anim, 1.0)
+			StopAnimTask(PlayerPedId(), action.animation.animDict, action.animation.anim, 1.0)
 		elseif action.animation.anim ~= nil then
-			exports['pulsar-animations']:EmotesForceCancel()
+			plsr.Animations.Emotes:ForceCancel()
 		else
-			if action.animation.task ~= nil and not IsPedInAnyVehicle(LocalPlayer.state.ped, true) then
-				ClearPedTasks(LocalPlayer.state.ped)
+			if action.animation.task ~= nil and not IsPedInAnyVehicle(PlayerPedId(), true) then
+				ClearPedTasks(PlayerPedId())
 			end
 		end
 	end
-
+	prop_net = nil
+	propTwo_net = nil
 	_runProgressThread = false
 	progress_action = nil
 end

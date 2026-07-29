@@ -1,5 +1,9 @@
+AddEventHandler("Proxy:Shared:RegisterReady", function()
+	exports["pulsar_core"]:RegisterComponent("InfoOverlay", INFOOVERLAY)
+end)
+
 -- RegisterNetEvent("Confirm:Client:Test", function()
--- 	exports['pulsar-hud']:ConfirmShow(
+-- 	Confirm:Show(
 -- 		"Test Input",
 -- 		{
 -- 			yes = "Confirm:Test:Yes",
@@ -14,28 +18,28 @@
 
 local _isOpen = false
 
-exports("InfoOverlayShow", function(title, description)
-	_isOpen = true
+INFOOVERLAY = {
+	Show = function(self, title, description)
+		_isOpen = true
 
-	SendNUIMessage({
-		type = "SHOW_INFO_OVERLAY",
-		data = {
-			info = {
-				label = title,
-				description = description,
+		SendNUIMessage({
+			type = "SHOW_INFO_OVERLAY",
+			data = {
+				info = {
+					label = title,
+					description = description,
+				},
 			},
-		},
-	})
-end)
+		})
+	end,
+	Close = function(self)
+		_isOpen = false
 
-exports("InfoOverlayClose", function()
-	_isOpen = false
-
-	SendNUIMessage({
-		type = "CLOSE_INFO_OVERLAY",
-	})
-end)
-
-exports("InfoOverlayIsOpen", function()
-	return _isOpen
-end)
+		SendNUIMessage({
+			type = "CLOSE_INFO_OVERLAY",
+		})
+	end,
+	IsOpen = function(self)
+		return _isOpen
+	end,
+}

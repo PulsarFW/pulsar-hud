@@ -1,7 +1,13 @@
-RegisterNetEvent("Hud:Client:GiveCash", function(hitting, data)
-	local tSid = Player(hitting.serverId).state.SID
+local config = load(LoadResourceFile(GetCurrentResourceName(), "config/shared.lua"))()
 
-	exports['pulsar-hud']:InputShow(
+AddEventHandler("Proxy:Shared:RegisterReady", function()
+	exports["pulsar_core"]:RegisterComponent("Input", INPUT)
+end)
+
+RegisterNetEvent("Hud:Client:GiveCash", function(hitting, data)
+	local tSid = plsr.State:GetPublicFlag(hitting.serverId, 'SID')
+
+	plsr.Input:Show(
 		"Give Cash",
 		"Amount To Give",
 		{
@@ -19,8 +25,8 @@ RegisterNetEvent("Hud:Client:GiveCash", function(hitting, data)
 				type = "number",
 				options = {
 					inputProps = {
-						min = 1,
-						max = 9999999,
+						min = config.GiveCash.min,
+						max = config.GiveCash.max,
 					},
 				},
 			},
@@ -33,14 +39,14 @@ RegisterNetEvent("Hud:Client:GiveCash", function(hitting, data)
 end)
 
 AddEventHandler("Hud:Client:DoGiveCash", function(values, data)
-	exports["pulsar-core"]:ServerCallback("Wallet:GiveCash", {
+	plsr.Callbacks:ServerCallback("Wallet:GiveCash", {
 		target = data.target,
 		amount = values.amount,
 	})
 end)
 
 -- RegisterNetEvent("Input:Client:Test", function()
--- 	exports['pulsar-hud']:InputShow(
+-- 	Input:Show(
 -- 		"Test Input",
 -- 		"Input Label",
 -- 		{
@@ -81,36 +87,37 @@ end)
 -- end)
 
 RegisterNUICallback("Input:Submit", function(data, cb)
-	exports['pulsar-sounds']:UISoundsPlayFrontEnd(-1, "SELECT", "HUD_FRONTEND_DEFAULT_SOUNDSET")
+	plsr.UISounds.Play:FrontEnd(-1, "SELECT", config.SoundSet)
 	TriggerEvent(data.event, data.values, data.data)
-	exports['pulsar-hud']:InputClose()
+	plsr.Input:Close()
 	cb("ok")
 end)
 
 RegisterNUICallback("Input:Close", function(data, cb)
-	exports['pulsar-sounds']:UISoundsPlayFrontEnd(-1, "BACK", "HUD_FRONTEND_DEFAULT_SOUNDSET")
-	exports['pulsar-hud']:InputClose()
+	plsr.UISounds.Play:FrontEnd(-1, "BACK", config.SoundSet)
+	plsr.Input:Close()
 	TriggerEvent("Input:Closed", data.event, data.data)
 	cb("ok")
 end)
 
-exports("InputShow", function(title, label, inputs, event, data)
-	SetNuiFocus(true, true)
-	SendNUIMessage({
-		type = "SHOW_INPUT",
-		data = {
-			title = title,
-			label = label,
-			inputs = inputs,
-			event = event,
-			data = data,
-		},
-	})
-end)
-
-exports("InputClose", function()
-	SetNuiFocus(false, false)
-	SendNUIMessage({
-		type = "CLOSE_INPUT",
-	})
-end)
+INPUT = {
+	Show = function(self, title, label, inputs, event, data)
+		SetNuiFocus(true, true)
+		SendNUIMessage({
+			type = "SHOW_INPUT",
+			data = {
+				title = title,
+				label = label,
+				inputs = inputs,
+				event = event,
+				data = data,
+			},
+		})
+	end,
+	Close = function(self)
+		SetNuiFocus(false, false)
+		SendNUIMessage({
+			type = "CLOSE_INPUT",
+		})
+	end,
+}

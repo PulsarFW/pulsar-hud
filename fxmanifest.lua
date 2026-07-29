@@ -1,32 +1,38 @@
-fx_version("cerulean")
-games({ "gta5" })
-lua54("yes")
-version '1.0.11'
-client_script("@pulsar-core/exports/cl_error.lua")
-client_script("@pulsar-pwnzor/client/check.lua")
+fx_version 'cerulean'
+games { 'gta5' }
 
-data_file("SCALEFORM_DLC_FILE")("stream/int3232302352.gfx")
+name 'Pulsar HUD'
+description 'Gameplay HUD with status bars, vehicle dash, and every shared overlay in the framework'
+author 'Artmines - maintained for Pulsar Framework'
+url 'https://pulsarframe.work'
+version 'v1.0.0'
+
+version_check 'yes'
+github 'https://github.com/PulsarFW/pulsar_hud'
+
+client_script '@pulsar_core/components/cl_error.lua'
+shared_script '@pulsar_core/core/sh_pulsar.lua'
+client_script '@pulsar_pwnzor/client/check.lua'
 
 client_scripts({
-  "config.lua",
-  "client/*.lua",
-  --'demo_games.lua',
+	'client/*.lua',
+	--'demo_games.lua',
 })
 
 server_scripts({
-  "config.lua",
-  "server/*.lua",
+	'server/*.lua',
 })
 
-ui_page("ui/dist/index.html")
 files({
-  "ui/dist/index.html",
-  "ui/dist/*.png",
-  "ui/dist/*.webp",
-  "ui/dist/*.js",
-  "ui/dist/*.css",
-  "ui/dist/*.mp3",
-  "ui/dist/*.ttf",
-  "ui/dist/*.woff2",
-  "stream/int3232302352.gfx",
+	'ui/dist/index.html',
+	'ui/dist/assets/*',
+	'stream/minimap.gfx',
+	'stream/****/handling.meta',  -- basic realistic vehicle handling
+	'config/shared.lua',
 })
+
+data_file 'SCALEFORM_DLC_FILE' 'stream/minimap.gfx'
+data_file 'HANDLING_FILE' 'stream/****/handling.meta'
+
+ui_page('ui/dist/index.html')
+lua54 'yes'

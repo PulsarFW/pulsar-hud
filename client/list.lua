@@ -1,5 +1,11 @@
+local config = load(LoadResourceFile(GetCurrentResourceName(), "config/shared.lua"))()
+
+AddEventHandler("Proxy:Shared:RegisterReady", function()
+	exports["pulsar_core"]:RegisterComponent("ListMenu", LISTMENU)
+end)
+
 RegisterNetEvent("ListMenu:Client:Test", function()
-	exports['pulsar-hud']:ListMenuShow({
+	plsr.ListMenu:Show({
 		main = {
 			label = "Test Menu",
 			items = {
@@ -34,44 +40,45 @@ RegisterNetEvent("ListMenu:Client:Test", function()
 end)
 
 RegisterNUICallback("ListMenu:Clicked", function(data, cb)
-	exports['pulsar-sounds']:UISoundsPlayFrontEnd(-1, "SELECT", "HUD_FRONTEND_DEFAULT_SOUNDSET")
-	exports['pulsar-hud']:ListMenuClose()
+	plsr.UISounds.Play:FrontEnd(-1, "SELECT", config.SoundSet)
+	plsr.ListMenu:Close()
 	TriggerEvent(data.event, data.data)
 	cb("ok")
 end)
 
 RegisterNUICallback("ListMenu:Back", function(data, cb)
-	exports['pulsar-sounds']:UISoundsPlayFrontEnd(-1, "BACK", "HUD_FRONTEND_DEFAULT_SOUNDSET")
+	plsr.UISounds.Play:FrontEnd(-1, "BACK", config.SoundSet)
 	TriggerEvent("ListMenu:GoBack")
 	cb("ok")
 end)
 
 RegisterNUICallback("ListMenu:SubMenu", function(data, cb)
-	exports['pulsar-sounds']:UISoundsPlayFrontEnd(-1, "CONTINUE", "HUD_FRONTEND_DEFAULT_SOUNDSET")
+	plsr.UISounds.Play:FrontEnd(-1, "CONTINUE", config.SoundSet)
 	TriggerEvent("ListMenu:EnterSubMenu", data.submenu)
 	cb("ok")
 end)
 
 RegisterNUICallback("ListMenu:Close", function(data, cb)
-	exports['pulsar-sounds']:UISoundsPlayFrontEnd(-1, "CANCEL", "HUD_FRONTEND_DEFAULT_SOUNDSET")
-	exports['pulsar-hud']:ListMenuClose()
+	plsr.UISounds.Play:FrontEnd(-1, "CANCEL", config.SoundSet)
+	plsr.ListMenu:Close()
 	TriggerEvent("ListMenu:Close")
 	cb("ok")
 end)
 
-exports("ListMenuShow", function(menus)
-	SetNuiFocus(true, true)
-	SendNUIMessage({
-		type = "SET_LIST_MENU",
-		data = {
-			menus = menus,
-		},
-	})
-end)
-
-exports("ListMenuClose", function()
-	SetNuiFocus(false, false)
-	SendNUIMessage({
-		type = "CLOSE_LIST_MENU",
-	})
-end)
+LISTMENU = {
+	Show = function(self, menus)
+		SetNuiFocus(true, true)
+		SendNUIMessage({
+			type = "SET_LIST_MENU",
+			data = {
+				menus = menus,
+			},
+		})
+	end,
+	Close = function(self)
+		SetNuiFocus(false, false)
+		SendNUIMessage({
+			type = "CLOSE_LIST_MENU",
+		})
+	end,
+}

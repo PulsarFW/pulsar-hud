@@ -1,60 +1,211 @@
-exports('Notification', function(notifType, message, duration, icon, style, id)
-    if duration == nil then
-        duration = 2500
-    end
+local config = load(LoadResourceFile(GetCurrentResourceName(), "config/shared.lua"))()
 
-    local notification = {
-        type = notifType,
-        message = message,
-        duration = duration,
-        icon = icon,
-    }
+Notification = {
+	Clear = function(self)
+		SendNUIMessage({
+			type = "CLEAR_ALERTS",
+		})
+	end,
+	Success = function(self, message, duration, icon)
+		if duration == nil then
+			duration = config.Notifications.defaultDuration
+		end
 
-    if style then
-        notification.style = style
-    end
+		SendNUIMessage({
+			type = "ADD_ALERT",
+			data = {
+				notification = {
+					type = "success",
+					message = message,
+					duration = duration,
+					icon = icon,
+				},
+			},
+		})
+	end,
+	Warn = function(self, message, duration, icon)
+		if duration == nil then
+			duration = config.Notifications.defaultDuration
+		end
 
-    if duration == -1 then -- If duration = -1, the notification will be persistent
-        if id == nil then
-            return
-        end
-        notification._id = id
-    end
+		SendNUIMessage({
+			type = "ADD_ALERT",
+			data = {
+				notification = {
+					type = "warning",
+					message = message,
+					duration = duration,
+					icon = icon,
+				},
+			},
+		})
+	end,
+	Error = function(self, message, duration, icon)
+		if duration == nil then
+			duration = config.Notifications.defaultDuration
+		end
 
-    if notification.type == "remove" then
-        SendNUIMessage({
-            type = "HIDE_ALERT",
-            data = {
-                id = id,
-            },
-        })
-        return
-    end
+		SendNUIMessage({
+			type = "ADD_ALERT",
+			data = {
+				notification = {
+					type = "error",
+					message = message,
+					duration = duration,
+					icon = icon,
+				},
+			},
+		})
+	end,
+	Info = function(self, message, duration, icon)
+		if duration == nil then
+			duration = config.Notifications.defaultDuration
+		end
 
-    if notification.type == "clear" then
-        SendNUIMessage({
-            type = "CLEAR_ALERTS",
-        })
-        return
-    end
+		SendNUIMessage({
+			type = "ADD_ALERT",
+			data = {
+				notification = {
+					type = "info",
+					message = message,
+					duration = duration,
+					icon = icon,
+				},
+			},
+		})
+	end,
+	Standard = function(self, message, duration, icon)
+		if duration == nil then
+			duration = config.Notifications.defaultDuration
+		end
 
-    SendNUIMessage({
-        type = "ADD_ALERT",
-        data = {
-            notification = notification,
-        },
-    })
-end)
+		SendNUIMessage({
+			type = "ADD_ALERT",
+			data = {
+				notification = {
+					type = "standard",
+					message = message,
+					duration = duration,
+					icon = icon,
+				},
+			},
+		})
+	end,
+	Custom = function(self, message, duration, icon, style)
+		if duration == nil then
+			duration = config.Notifications.defaultDuration
+		end
 
-RegisterNetEvent("HUD:Client:NotificationClear", function()
-    exports['pulsar-hud']:Notification("clear")
-end)
+		SendNUIMessage({
+			type = "ADD_ALERT",
+			data = {
+				notification = {
+					type = "custom",
+					message = message,
+					duration = duration,
+					icon = icon,
+					style = style,
+				},
+			},
+		})
+	end,
+	Persistent = {
+		Success = function(self, id, message, icon)
+			SendNUIMessage({
+				type = "ADD_ALERT",
+				data = {
+					notification = {
+						_id = id,
+						type = "success",
+						message = message,
+						duration = -1,
+						icon = icon,
+					},
+				},
+			})
+		end,
+		Warn = function(self, id, message, icon)
+			SendNUIMessage({
+				type = "ADD_ALERT",
+				data = {
+					notification = {
+						_id = id,
+						type = "warning",
+						message = message,
+						duration = -1,
+						icon = icon,
+					},
+				},
+			})
+		end,
+		Error = function(self, id, message, icon)
+			SendNUIMessage({
+				type = "ADD_ALERT",
+				data = {
+					notification = {
+						_id = id,
+						type = "error",
+						message = message,
+						duration = -1,
+						icon = icon,
+					},
+				},
+			})
+		end,
+		Info = function(self, id, message, icon)
+			SendNUIMessage({
+				type = "ADD_ALERT",
+				data = {
+					notification = {
+						_id = id,
+						type = "info",
+						message = message,
+						duration = -1,
+						icon = icon,
+					},
+				},
+			})
+		end,
+		Standard = function(self, id, message, icon)
+			SendNUIMessage({
+				type = "ADD_ALERT",
+				data = {
+					notification = {
+						_id = id,
+						type = "standard",
+						message = message,
+						duration = -1,
+						icon = icon,
+					},
+				},
+			})
+		end,
+		Custom = function(self, id, message, icon, style)
+			SendNUIMessage({
+				type = "ADD_ALERT",
+				data = {
+					notification = {
+						_id = id,
+						type = "custom",
+						message = message,
+						duration = -1,
+						icon = icon,
+						style = style,
+					},
+				},
+			})
+		end,
+		Remove = function(self, id)
+			SendNUIMessage({
+				type = "HIDE_ALERT",
+				data = {
+					id = id,
+				},
+			})
+		end,
+	},
+}
 
-RegisterNetEvent("HUD:Client:NotificationRemove", function(id)
-    exports['pulsar-hud']:Notification("remove", id)
-end)
-
-RegisterNetEvent("HUD:Client:Notification", function(notification)
-    exports['pulsar-hud']:Notification(notification.type, notification.message, notification.duration, notification
-        .icon, notification.style, notification._id)
+AddEventHandler("Proxy:Shared:RegisterReady", function()
+	exports["pulsar_core"]:RegisterComponent("Notification", Notification)
 end)

@@ -1,24 +1,13 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { resolve } from 'path'
+import { defineConfig } from 'vite';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 
-export default defineConfig(({ mode }) => ({
-  plugins: [react()],
-  base: './',
-  build: {
-    outDir: 'dist',
-    emptyOutDir: true,
-    rollupOptions: {
-      output: {
-        entryFileNames: '[name].js',
-        chunkFileNames: '[name]-[hash].js',
-        assetFileNames: '[name][extname]',
-      },
-    },
-  },
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src'),
-    },
-  },
-}))
+// base MUST stay relative — FiveM's NUI loads this over a local nui:// scheme,
+// not from a domain root, so absolute "/assets/..." paths would 404 in-game.
+export default defineConfig({
+	base: './',
+	plugins: [svelte()],
+	build: {
+		outDir: 'dist',
+		emptyOutDir: true,
+	},
+});
